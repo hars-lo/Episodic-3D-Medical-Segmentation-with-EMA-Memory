@@ -1,0 +1,9 @@
+datasets/
+outputs/
+checkpoints/
+*.nii
+*.nii.gz
+*.pt
+*.pth
+*.ckpt
+*.log
