@@ -212,13 +212,10 @@ python scripts/training/train_iris_acdc_brain_binary_ensemble_memory_bank.py `
   --output-dir outputs/iris_acdc_brain_binary_ema_memory96_run12000
 ```
 
-Pass `--memory-momentum 0.90` explicitly: the runner's CLI default is `0.999`, while the documented experiment used `0.90`.
-
 
 
 ## Reference
 
 Gao, Y. et al. (2025). *Show and Segment: Universal Medical Image Segmentation via In-Context Learning*. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).
 
-- [CVPR paper](https://openaccess.thecvf.com/content/CVPR2025/html/Gao_Show_and_Segment_Universal_Medical_Image_Segmentation_via_In-Context_Learning_CVPR_2025_paper.html)
 - [arXiv:2503.19359](https://arxiv.org/abs/2503.19359)
