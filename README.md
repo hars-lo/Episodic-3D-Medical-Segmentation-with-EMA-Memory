@@ -1,8 +1,35 @@
-# IRIS: 3D Medical Segmentation with Dataset-Specific EMA Task Memory
+# Episodic 3D Medical Segmentation with EMA Memory
 
-An independent, **IRIS-inspired episodic 3D segmentation implementation** that compares support-conditioned prediction with **support-free retrieval from separate EMA task memories** for ACDC cardiac foreground and MSD Brain Tumour whole-tumour segmentation.
+An independent, IRIS-inspired framework for episodic 3D medical image segmentation, combining support-conditioned task representations with dataset-specific Exponential Moving Average (EMA) memory for task retrieval.
 
-The implementation draws on the in-context task-encoding and reference-guided decoding ideas in *Show and Segment: Universal Medical Image Segmentation via In-Context Learning* (CVPR 2025). It is an independent implementation, not an official reproduction of the paper or its full evaluation protocol.
+Evaluated on ACDC cardiac MRI and MSD Brain Tumour MRI, the framework investigates how reference-guided segmentation and persistent task memory can support segmentation across distinct medical imaging domains. The implementation draws on the in-context task encoding and reference-guided decoding principles presented in Show and Segment: Universal Medical Image Segmentation via In-Context Learning (CVPR 2025), while introducing an independent dataset-specific EMA memory design.
+
+This repository documents the implementation, experimental methodology, and quantitative and qualitative evaluation.
+
+## Predictions
+
+The repository snapshot contains  four prediction montages, stored under `assets/`. Overlays use **green for ground truth** and **red for prediction**. 
+
+
+### ACDC — cardiac foreground union
+
+**All-axis comparison:** image, ground truth, one-support, three-support and EMA-memory predictions.
+
+![ACDC all-axis predictions](assets/acdc_all_axes.png)
+
+**Axis-2 cross-sectional views:** representative slices through the cardiac foreground.
+
+![ACDC axis-2 predictions](assets/acdc_axis2_slices.png)
+
+### MSD Brain Tumour — whole-tumour union
+
+**All-axis comparison:** image, ground truth and the three inference strategies.
+
+![Brain Tumour all-axis predictions](assets/msd_brain_tumor_all_axes.png)
+
+**Axis-2 cross-sectional views:** representative slices through the whole-tumour foreground.
+
+![Brain Tumour axis-2 predictions](assets/msd_brain_tumor_axis2_slices.png)
 
 ## Experiment
 
@@ -69,11 +96,7 @@ Training uses one support and a different query subject per episode. ACDC frames
 
 The Dice metric is:
 
-```math
-\operatorname{Dice}(P,G) =
-\frac{2|P \cap G|+\epsilon}
-{|P|+|G|+\epsilon}.
-```
+$$Dice(P, G) = \frac{2 |P \cap G| + \epsilon}{|P| + |G| + \epsilon}$$
 
 where \(P\) is the predicted foreground and \(G\) is the ground-truth foreground. The reported macro score first averages episode Dice within each dataset and then gives the two datasets equal weight:
 
@@ -113,9 +136,8 @@ This is an equal-weight average of dataset scores, not a pooled voxel-wise Dice.
 
 Images are resized to the target volume size using cubic interpolation; masks use nearest-neighbour interpolation. MRI intensities are percentile-clipped (1st–99th percentile), normalized, foreground-standardized and clipped to the configured range. No original image spacing target is specified in the documented run.
 
-## Visual results
-
-The repository snapshot contains one validation graph and four prediction montages, stored under `assets/`. Overlays use **green for ground truth** and **red for prediction**. The cross-sectional montages show array axis 2; axis labels refer to the preprocessed array, not a guaranteed anatomical orientation. Each montage is a saved test episode, not a review of every test subject.
+## results
+The framework achieved an **equal-weight macro test Dice of 0.8410** across ACDC cardiac MRI and MSD Brain Tumour MRI, based on the dataset-specific EMA memory-bank inference strategy.
 
 ### Validation
 
@@ -123,25 +145,6 @@ The repository snapshot contains one validation graph and four prediction montag
 
 ![Macro validation Dice](assets/validation_dice_macro.png)
 
-### ACDC — cardiac foreground union
-
-**All-axis comparison:** image, ground truth, one-support, three-support and EMA-memory predictions.
-
-![ACDC all-axis predictions](assets/acdc_all_axes.png)
-
-**Axis-2 cross-sectional views:** representative slices through the cardiac foreground.
-
-![ACDC axis-2 predictions](assets/acdc_axis2_slices.png)
-
-### MSD Brain Tumour — whole-tumour union
-
-**All-axis comparison:** image, ground truth and the three inference strategies.
-
-![Brain Tumour all-axis predictions](assets/msd_brain_tumor_all_axes.png)
-
-**Axis-2 cross-sectional views:** representative slices through the whole-tumour foreground.
-
-![Brain Tumour axis-2 predictions](assets/msd_brain_tumor_axis2_slices.png)
 
 ## Repository layout
 
