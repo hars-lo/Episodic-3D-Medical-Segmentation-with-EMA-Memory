@@ -31,11 +31,13 @@ For the documented configuration, the encoder has 256 channels at its deepest st
 
 The contextual branch uses the encoder's 16× spatial downsampling ratio. With 256 feature channels, the implementation computes:
 
-$$
+```math
 C_{\text{context}} =
-\max\left(1,\left\lceil\frac{256}{16^3}\right\rceil\right)
-= 1.
-$$
+\max\left(
+1,
+\left\lceil \frac{256}{16^3} \right\rceil
+\right) = 1.
+```
 
 ### EMA memory
 
@@ -48,11 +50,10 @@ The built-in `ClassMemoryBank` is keyed by integer IDs. Since both datasets use 
 
 For task embedding \(E_t\), the memory update is:
 
-$$
-M_t = \mu M_{t-1} + (1-\mu)E_t
-$$
-
-where $\mu=0.90$ is the EMA momentum.
+```math
+M_t = \mu M_{t-1} + (1-\mu)E_t,
+\qquad \mu = 0.90.
+```
 
 Only detached support embeddings from training episodes update the bank, and only after a successful optimizer step. Validation and test do not update it. At bank-inference time, the runner retrieves the stored embedding associated with the selected dataset/task and sends it to the query decoder. This is support-free inference for **tasks already represented in the training memory**; it is not inference on an unseen task or unseen dataset.
 
@@ -68,18 +69,18 @@ Training uses one support and a different query subject per episode. ACDC frames
 
 The Dice metric is:
 
-$$
+```math
 \operatorname{Dice}(P,G) =
-\frac{2|P\cap G|+\epsilon}
-{|P|+|G|+\epsilon}
-$$
+\frac{2|P \cap G|+\epsilon}
+{|P|+|G|+\epsilon}.
+```
 
 where \(P\) is the predicted foreground and \(G\) is the ground-truth foreground. The reported macro score first averages episode Dice within each dataset and then gives the two datasets equal weight:
 
-$$
+```math
 D_{\text{macro}} =
-\frac{D_{\text{ACDC}}+D_{\text{Brain Tumour}}}{2}
-$$
+\frac{D_{\text{ACDC}}+D_{\text{Brain Tumour}}}{2}.
+```
 
 This is an equal-weight average of dataset scores, not a pooled voxel-wise Dice.
 
