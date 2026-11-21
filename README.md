@@ -212,6 +212,54 @@ python scripts/training/train_iris_acdc_brain_binary_ensemble_memory_bank.py `
   --output-dir outputs/iris_acdc_brain_binary_ema_memory96_run12000
 ```
 
+## Federated extension
+
+The episodic model is extended to a two-client prototype-sharing setup. For this experiment, input volumes are resized to **128 × 128 × 128** (single channel), with the same 9 × 256 task embeddings. ACDC training patients are randomly split by patient ID (seed 42): 75% are assigned to Client A and the remaining 25% to Client B. Client A also uses MSD Brain Tumour, while Client B uses MSD Spleen. Each client maintains its own model, optimizer and EMA memory. The federated configuration additionally requires `datasets/msd_spleen/` alongside the datasets listed above.
+
+```mermaid
+flowchart LR
+    subgraph A["Client A"]
+        A1["75% ACDC + MSD Brain Tumour"] --> A2["Local model and EMA memory"]
+    end
+    subgraph B["Client B"]
+        B1["25% ACDC + MSD Spleen"] --> B2["Local model and EMA memory"]
+    end
+    A2 -->|"Prototypes, Q and S"| S["Server: weighted K-means"]
+    B2 -->|"Prototypes, Q and S"| S
+    S -->|"3 normalized centroids"| A2
+    S -->|"3 normalized centroids"| B2
+```
+
+For each client-task memory entry \(E_{c,k}\in\mathbb{R}^{9\times256}\), the server receives a normalized 256-dimensional prototype:
+
+```math
+p_{c,k}=\frac{\frac{1}{9}\sum_{j=1}^{9}E_{c,k,j}}
+{\left\|\frac{1}{9}\sum_{j=1}^{9}E_{c,k,j}\right\|_2+\epsilon}.
+```
+
+Each prototype is accompanied by \(Q_i\), the foreground-voxel count accumulated during the communication interval, and \(S_i\), the mean predicted foreground probability over ground-truth foreground voxels. For the \(M\) pooled prototypes, the server combines their normalized statistics to obtain sample weights and performs weighted K-means with three clusters:
+
+```math
+w_i=\frac{1}{2}\left(\frac{Q_i}{\sum_j Q_j+\epsilon}+
+\frac{S_i}{\sum_j S_j+\epsilon}\right),
+\qquad
+\min_{\{\mu_r\}_{r=1}^{3}}\sum_{i=1}^{M}w_i\min_{r\in\{1,2,3\}}\|p_i-\mu_r\|_2^2.
+```
+
+The normalized centroids are returned to both clients. For each local task token \(x_j\), the alignment term uses its softmax similarity to the centroids, weighted by the distance to each centroid:
+
+```math
+a_{jr}=\frac{\exp(x_j^\top c_r/\tau)}
+{\sum_{s=1}^{3}\exp(x_j^\top c_s/\tau)},
+\qquad
+\mathcal{L}_{\mathrm{align}}=\frac{1}{9}\sum_{j=1}^{9}\sum_{r=1}^{3}
+a_{jr}\|x_j-c_r\|_2,
+\qquad
+\mathcal{L}_{\mathrm{client}}=\mathcal{L}_{\mathrm{seg}}+0.1\mathcal{L}_{\mathrm{align}},
+\quad \tau=0.1.
+```
+
+Communication begins after 1,000 local iterations and repeats every 500 iterations. The server clusters prototype vectors without using task IDs as clustering features; Q and S are used as sample weights. Raw scans, masks and model weights remain local. The federated implementation code is not included in this release.
 
 
 ## Reference
