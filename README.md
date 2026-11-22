@@ -6,6 +6,8 @@ Evaluated on ACDC cardiac MRI and MSD Brain Tumour MRI, the framework investigat
 
 This repository documents the implementation, experimental methodology, and quantitative and qualitative evaluation.
 
+**An ongoing two-client prototype-sharing extension built on this framework is also documented below (see [Federated extension](#federated-extension); method and equations are documented there).**
+
 ## Predictions
 
 The repository snapshot contains  four prediction montages, stored under `assets/`. Overlays use **green for ground truth** and **red for prediction**. 
@@ -136,8 +138,8 @@ This is an equal-weight average of dataset scores, not a pooled voxel-wise Dice.
 
 Images are resized to the target volume size using cubic interpolation; masks use nearest-neighbour interpolation. MRI intensities are percentile-clipped (1st–99th percentile), normalized, foreground-standardized and clipped to the configured range. No original image spacing target is specified in the documented run.
 
-## results
-The framework achieved an **equal-weight macro test Dice of 0.8410** across ACDC cardiac MRI and MSD Brain Tumour MRI, based on the dataset-specific EMA memory-bank inference strategy.
+## Results
+The framework achieved an **equal-weight macro validation Dice of 0.83** across ACDC cardiac MRI and MSD Brain Tumour MRI, based on the dataset-specific EMA memory-bank inference strategy.
 
 ### Validation
 
@@ -214,7 +216,8 @@ python scripts/training/train_iris_acdc_brain_binary_ensemble_memory_bank.py `
 
 ## Federated extension
 
-The episodic model is extended to a two-client prototype-sharing setup. For this experiment, input volumes are resized to **128 × 128 × 128** (single channel), with the same 9 × 256 task embeddings. ACDC training patients are randomly split by patient ID (seed 42): 75% are assigned to Client A and the remaining 25% to Client B. Client A also uses MSD Brain Tumour, while Client B uses MSD Spleen. Each client maintains its own model, optimizer and EMA memory. The federated configuration additionally requires `datasets/msd_spleen/` alongside the datasets listed above.
+The episodic model is extended to a two-client prototype-sharing setup. A two-client configuration is used first to verify the communication loop and observe how partial task overlap, split imbalance, and modality differences (MRI-only vs. MRI and CT) affect label-free clustering before scaling to more clients.
+For this experiment, input volumes are resized to **128 × 128 × 128** (single channel), with the same 9 × 256 task embeddings. ACDC training patients are randomly split by patient ID (seed 42): 75% are assigned to Client A and the remaining 25% to Client B. Client A also uses MSD Brain Tumour, while Client B uses MSD Spleen. Each client maintains its own model, optimizer and EMA memory. 
 
 ```mermaid
 flowchart LR
@@ -230,7 +233,7 @@ flowchart LR
     S -->|"3 normalized centroids"| B2
 ```
 
-For each client-task memory entry \(E_{c,k}\in\mathbb{R}^{9\times256}\), the server receives a normalized 256-dimensional prototype:
+For each client-task memory entry $'E_{c,k}\in\mathbb{R}^{9\times256}'$, the server receives a normalized 256-dimensional prototype:
 
 ```math
 p_{c,k}=\frac{\frac{1}{9}\sum_{j=1}^{9}E_{c,k,j}}
@@ -246,7 +249,7 @@ w_i=\frac{1}{2}\left(\frac{Q_i}{\sum_j Q_j+\epsilon}+
 \min_{\{\mu_r\}_{r=1}^{3}}\sum_{i=1}^{M}w_i\min_{r\in\{1,2,3\}}\|p_i-\mu_r\|_2^2.
 ```
 
-The normalized centroids are returned to both clients. For each local task token \(x_j\), the alignment term uses its softmax similarity to the centroids, weighted by the distance to each centroid:
+The normalized centroids $c_r$ are returned to both clients. For each local task token \(x_j\), the alignment term uses its softmax similarity to the centroids, weighted by the distance to each centroid:
 
 ```math
 a_{jr}=\frac{\exp(x_j^\top c_r/\tau)}
@@ -259,7 +262,7 @@ a_{jr}\|x_j-c_r\|_2,
 \quad \tau=0.1.
 ```
 
-Communication begins after 1,000 local iterations and repeats every 500 iterations. The server clusters prototype vectors without using task IDs as clustering features; Q and S are used as sample weights. Raw scans, masks and model weights remain local. The federated implementation code is not included in this release.
+Communication begins after 1,000 local iterations and repeats every 500 iterations. The server clusters prototype vectors without using task IDs as clustering features; Q and S are used as sample weights. Raw scans, masks and model weights remain local. **The federated training scripts are not included in this public release.**
 
 
 ## Reference
